@@ -1,0 +1,40 @@
+name: cc-dispatch-unikraft
+
+on:
+  pull_request_target:
+    branches: [staging]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  notify-catalog-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App Token for Catalog Core
+        uses: actions/create-github-app-token@v1
+        id: generate_token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: catalog-core
+
+      - name: Get the start time
+        id: start_time
+        run: echo "start=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+
+      - name: Repository Dispatch
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/{owner}/{repo}/dispatches
+          owner: ${{ github.repository_owner }}
+          repo: catalog-core
+          event_type: unikraft_open_pr
+          client_payload: |
+            {
+              "pr_number": "${{ github.event.pull_request.number }}",
+              "pr_repo": "${{ github.repository }}",
+              "pr_sha": "${{ github.event.pull_request.head.sha }}",
+              "start_time": "${{ steps.start_time.outputs.start }}"
+            }
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
