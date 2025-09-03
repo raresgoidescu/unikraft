@@ -1,0 +1,31 @@
+name: cc-dispatch-unikraft
+
+on:
+  pull_request_target:
+    branches: [staging]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  notify-new-app-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the start time
+        id: start_time
+        run: echo "start=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+
+      - name: Repository Dispatch
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/{owner}/{repo}/dispatches
+          owner: raresgoidescu
+          repo: catalog-core
+          event_type: unikraft_pr
+          client_payload: |
+            {
+              "pr_number": "${{ github.event.pull_request.number }}",
+              "pr_repo": "${{ github.repository }}",
+              "pr_sha": "${{ github.event.pull_request.head.sha }}",
+              "id": "${{ github.run_id }}"
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_CATALOG_CORE_PAT }}
